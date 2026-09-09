@@ -1,36 +1,25 @@
 # Salesforce Apex Automation Project
 
-A recruiter-friendly Salesforce Developer project demonstrating **Apex Triggers, Trigger Handler Pattern, SOQL, Maps/Sets, Bulkification, duplicate prevention, rollup-style automation, and Test Classes**.
+A recruiter-friendly Salesforce Developer portfolio project demonstrating **Apex Triggers, Trigger Handler Pattern, SOQL, Maps/Sets, Bulkification, duplicate prevention, rollup-style automation, and Test Classes**.
 
-## Project Objective
+## Business Requirements
 
-This project contains realistic Salesforce automation requirements commonly discussed in Salesforce Developer interviews.
+### 1. Prevent duplicate Contacts
+Two Contacts under the same Account cannot have the same Email address. The validation works for insert and update and also catches duplicates created in the same transaction.
 
-### Automation 1 — Prevent Duplicate Contacts
+### 2. Maintain Contact count
+Maintain `Account.Total_Contacts__c` with the number of Contacts related to the Account. Insert, update, delete, and undelete are handled.
 
-Do not allow two Contacts under the **same Account** to have the same Email address.
-
-- Works for insert and update.
-- Bulk-safe.
-- Checks existing Salesforce records and duplicate records in the same transaction.
-
-### Automation 2 — Maintain Contact Count on Account
-
-Maintain `Account.Total_Contacts__c` with the number of Contacts related to each Account.
-
-- Handles insert, update, and delete.
-- Uses aggregate SOQL.
-- Bulk-safe.
-
-### Automation 3 — Update Account Opportunity Status
-
-Maintain `Account.Opportunity_Status__c` using related Opportunities:
-
-- `Closed Won` when the Account has Opportunities and **all** of them are Closed Won.
+### 3. Maintain Opportunity status
+Maintain `Account.Opportunity_Status__c`:
+- `Closed Won` when the Account has Opportunities and all are Closed Won.
 - `Open` when at least one related Opportunity is not Closed Won.
-- Accounts without Opportunities remain `Open`.
+- `Open` when the Account has no Opportunities.
 
-## Salesforce Components
+### 4. Maintain Opportunity Line Item count
+Maintain `Account.Total_Opportunity_Line_Items__c` with the number of Opportunity Line Items across all Opportunities belonging to the Account.
+
+## Project Structure
 
 ```text
 force-app/main/default/
@@ -39,66 +28,66 @@ force-app/main/default/
 │   ├── AccountAutomationHandler.cls-meta.xml
 │   ├── ContactAutomationHandler.cls
 │   ├── ContactAutomationHandler.cls-meta.xml
-│   ├── ContactAutomationTriggerTest.cls
-│   ├── ContactAutomationTriggerTest.cls-meta.xml
-│   ├── OpportunityAutomationTriggerTest.cls
-│   └── OpportunityAutomationTriggerTest.cls-meta.xml
-├── triggers/
-│   ├── ContactAutomationTrigger.trigger
-│   ├── ContactAutomationTrigger.trigger-meta.xml
-│   ├── OpportunityAutomationTrigger.trigger
-│   └── OpportunityAutomationTrigger.trigger-meta.xml
-└── README.md
+│   ├── ContactAutomationHandlerTest.cls
+│   ├── ContactAutomationHandlerTest.cls-meta.xml
+│   ├── OpportunityAutomationHandlerTest.cls
+│   ├── OpportunityAutomationHandlerTest.cls-meta.xml
+│   ├── OpportunityLineItemAutomationHandler.cls
+│   └── OpportunityLineItemAutomationHandler.cls-meta.xml
+├── objects/Account/fields/
+│   ├── Total_Contacts__c.field-meta.xml
+│   ├── Opportunity_Status__c.field-meta.xml
+│   └── Total_Opportunity_Line_Items__c.field-meta.xml
+└── triggers/
+    ├── ContactAutomationTrigger.trigger
+    ├── ContactAutomationTrigger.trigger-meta.xml
+    ├── OpportunityAutomationTrigger.trigger
+    ├── OpportunityAutomationTrigger.trigger-meta.xml
+    ├── OpportunityLineItemAutomationTrigger.trigger
+    └── OpportunityLineItemAutomationTrigger.trigger-meta.xml
 ```
 
-## Concepts Demonstrated
+## Salesforce Concepts Demonstrated
 
-- Apex Trigger
+- Apex Trigger and Trigger Context Variables
 - Trigger Handler Pattern
-- Trigger Context Variables
-- SOQL and Aggregate SOQL
 - `Map`, `Set`, and `List`
-- Bulkification
-- `addError()` validation
-- Insert, Update and Delete handling
+- SOQL and Aggregate SOQL
 - Relationship queries
-- Test classes
+- Bulkification and governor-limit awareness
+- `addError()` validation
+- Insert, update, delete, and undelete handling
+- Test classes and assertions
 - `Test.startTest()` / `Test.stopTest()`
-- Assertions
 
-## Required Custom Fields
+## Custom Account Fields
 
-Create these fields in Salesforce before deploying/running the complete project:
-
-| Object | Field API Name | Type |
+| Field API Name | Type | Purpose |
 |---|---|---|
-| Account | `Total_Contacts__c` | Number(18,0) |
-| Account | `Opportunity_Status__c` | Text(50) or Picklist with values `Open`, `Closed Won` |
+| `Total_Contacts__c` | Number | Contact count |
+| `Opportunity_Status__c` | Picklist | Open / Closed Won |
+| `Total_Opportunity_Line_Items__c` | Number | Opportunity Line Item count |
 
-> If your org uses different API names, update the Apex code accordingly.
+The field metadata is included in this repository, so the project can be deployed as Salesforce DX source instead of manually creating these fields.
 
 ## Deployment
 
-This project is structured as a Salesforce DX source directory. It can be deployed using Salesforce CLI / VS Code Salesforce Extension Pack.
+Authenticate to your Salesforce Developer Edition, sandbox, or other authorized org and deploy the source:
 
 ```bash
 sf project deploy start --source-dir force-app/main/default
 ```
 
-## Interview Talking Points
+Run Apex tests from Salesforce Setup, VS Code, or Salesforce CLI after deployment.
 
-**Why use a handler class?**
+## Interview Explanation
 
-I keep the trigger thin and move business logic into handler classes. This improves readability, maintainability and testability.
+> "I created a Salesforce Apex automation project using a trigger-handler architecture. I kept the triggers thin and moved business logic into handler classes. The project prevents duplicate Contacts based on Account and Email, maintains Contact and Opportunity Line Item counts on Account, and automatically changes Account Opportunity Status depending on whether all related Opportunities are Closed Won. I used Sets and Maps to collect IDs and Aggregate SOQL to avoid queries inside loops, making the solution bulk-safe and governor-limit friendly."
 
-**How is the solution bulk-safe?**
+## What Problem Did I Solve?
 
-I collect IDs and email keys in Sets, perform SOQL outside loops, and use Maps to process records in memory. The design works for single records and bulk transactions.
+A common problem with beginner Apex code is putting SOQL or DML inside loops. That approach can fail when Salesforce processes many records in one transaction. In this project, IDs are collected first, data is queried in bulk, and records are updated using Lists. This makes the automation suitable for bulk operations such as data loads.
 
-**Why use aggregate SOQL for the Contact count?**
+## Portfolio Note
 
-Aggregate SOQL lets Salesforce calculate the count at the database level, so Apex does not need to query every Contact just to count them.
-
-## Note
-
-This is a personal learning/project portfolio repository. It demonstrates Salesforce development skills and should not be presented as production experience with a real client.
+This is a personal learning/portfolio project. It demonstrates Salesforce development skills and should not be presented as production experience with a real client.
